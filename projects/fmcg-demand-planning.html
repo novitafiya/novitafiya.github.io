@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMCG Demand &amp; Supply Planning · Novita F. Pulungan</title>
+<meta name="description" content="Seasonality, forecast accuracy, promo uplift, and stockout cost from three years of daily FMCG sales, built in Excel.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23256abf'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='15' fill='white' text-anchor='middle'%3ENF%3C/text%3E%3C/svg%3E">
+<script src="../assets/charts.js"></script>
+<script src="../assets/data.js"></script>
+</head>
+<body>
+<nav class="nav"><div class="wrap">
+  <a class="brand" href="../">Novita F. Pulungan</a>
+  <div class="nav-links">
+    <a href="../#projects">Projects</a><a href="warehouse-inventory.html">Warehouse project</a><a href="../#contact">Contact</a>
+  </div>
+  <button class="theme-btn" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+</div></nav>
+
+<header class="hero" style="padding-bottom:8px"><div class="wrap">
+  <a class="crumb" href="../#projects">← All projects</a>
+  <div class="eyebrow">Project 1 · Demand planning</div>
+  <h1>FMCG Demand &amp; Supply Planning</h1>
+  <p class="lead">Three years of daily sales for 30 SKUs, used to answer the questions a demand planner faces every month: when demand peaks, which forecast to trust, how much promos add, and what stockouts cost.</p>
+  <div class="notice"><strong>Data:</strong> <a href="https://www.kaggle.com/datasets/beatafaron/fmcg-daily-sales-data-to-2022-2024" target="_blank" rel="noopener">FMCG Daily Sales Data 2022–2024</a> (Kaggle, beatafaron), a public <strong>synthetic</strong> dataset. The results demonstrate the method; they are not findings about a real company.</div>
+  <div class="kpis">
+    <div class="kpi"><div class="v">190,754</div><div class="l">daily rows after cleaning · 30 SKUs, 5 categories</div></div>
+    <div class="kpi"><div class="v">5.9%</div><div class="l">MAPE of the best monthly forecast (2024 backtest)</div></div>
+    <div class="kpi"><div class="v">+95%</div><div class="l">units per row during promotions</div></div>
+    <div class="kpi"><div class="v">~78,400</div><div class="l">units of estimated lost sales (2.0% of demand)</div></div>
+  </div>
+</div></header>
+
+<main>
+<section><div class="wrap grid-2">
+  <div class="prose">
+    <h2>The questions</h2>
+    <ol class="steps">
+      <li>When does demand peak, and does every category peak at the same time?</li>
+      <li>Which simple forecast method is accurate enough to plan with?</li>
+      <li>How much do promotions lift demand, and how much more variable does it get?</li>
+      <li>How much demand is lost when stock runs out?</li>
+      <li>How do new SKUs ramp up after launch?</li>
+    </ol>
+  </div>
+  <div class="prose">
+    <h2>Data preparation</h2>
+    <p>One row is one SKU, one day, one channel (3), one region (3), and one pack type. Period: 21 Jan 2022 to 31 Dec 2024.</p>
+    <ul class="plain">
+      <li>Removed 3 rows with negative units sold (190,757 → 190,754). No duplicates or missing values.</li>
+      <li>Checked the data card against the file. Two claims did not hold (new SKUs only in 2024; rising prices), so neither is used.</li>
+      <li>Every step is logged in the workbook's CLEANING_LOG sheet.</li>
+    </ul>
+  </div>
+</div></section>
+
+<section style="padding-top:0"><div class="wrap">
+  <div class="card chart-card">
+    <h3>Monthly units sold, all SKUs</h3>
+    <div class="sub">Units per month, Jan 2022 – Dec 2024 (Jan 2022 starts on the 21st)</div>
+    <div class="chart" id="c-monthly"></div>
+    <p class="takeaway">The jump from 2022 to 2023 comes from new SKUs (20 active in 2022, 30 from 2023), not from existing products selling more. Units in 2024 were 0.9% below 2023. Reading this chart as "consistent growth" would overstate demand.</p>
+  </div>
+
+  <div class="card chart-card">
+    <h3>1 · Seasonality: not every category peaks together</h3>
+    <div class="sub">Seasonality index by month, 2023–2024. Dashed line = 100, the average month.</div>
+    <div class="chart" id="c-season"></div>
+    <p class="takeaway">Total demand peaks in June–July (index 114) and bottoms out in December (82). Juice swings the most (peak 138 in June, low 64 in December). ReadyMeal runs the opposite way: it peaks in February (121) when other categories are low. If ReadyMeal shares a production line with summer categories, this pattern helps level capacity across the year.</p>
+  </div>
+
+  <div class="card chart-card">
+    <h3>2 · Forecast accuracy: no single best method</h3>
+    <div class="sub">MAPE of three monthly forecasts, backtested on the 12 months of 2024 (lower is better)</div>
+    <div class="chart" id="c-mape"></div>
+    <p class="takeaway">At total level, last month's value (naive) is the most accurate at 5.9%. By category it changes: seasonal naive wins for Yogurt (5.8%) and ReadyMeal (5.7%), naive wins for Milk, SnackBar, and Juice. Seasonal naive fails for Milk and SnackBar because many of their SKUs launched in 2023, so last year's level is not comparable. A planner should pick the method per category, not one method for everything.</p>
+  </div>
+
+  <div class="card chart-card">
+    <h3>3 · Promotions nearly double demand, and its variability</h3>
+    <div class="sub">Average units per row, with and without promotion</div>
+    <div class="chart" id="c-promo"></div>
+    <p class="takeaway">14.9% of rows are on promotion. Promo rows sell 34.1 units on average against 17.4 without (+95%), and the uplift is consistent across categories (+93% to +97%). The standard deviation of demand also doubles, so safety stock for promo periods needs to be roughly twice the normal level.</p>
+  </div>
+
+  <div class="card chart-card">
+    <h3>4 · Stockouts: estimated lost sales by SKU</h3>
+    <div class="sub">Top 10 SKUs by estimated lost units, 2022–2024</div>
+    <div class="chart" id="c-lost"></div>
+    <p class="takeaway">2.0% of rows have zero stock, and every one of them sells zero units. Estimating what those rows would have sold (the average for the same SKU, channel, region, and promo status in the same month while stock was available) gives about 78,400 lost units, or 2.0% of demand, worth about 411,800 in dataset currency units. Stockout rates are narrow across SKUs (1.8% to 2.5%), and delivery lead time (1–5 days) shows no effect on sales or stockouts.</p>
+  </div>
+
+  <div class="card chart-card">
+    <h3>5 · New SKU launch curve</h3>
+    <div class="sub">Units per row by month since launch, indexed to each SKU's stable level (dashed line = 100, its average for months 13–24). 20 SKUs launched Jun 2022 – May 2023.</div>
+    <div class="chart" id="c-launch"></div>
+    <p class="takeaway">New SKUs sell about 87% of their stable level in months 1–2, then spike to 126–137% in months 3–6, ease to 104–107% in months 8–12, and settle near 100% in the second year. A launch plan built on the first two months would under-supply the spike that follows. Limitation: launch months differ, so some seasonality is mixed into this curve.</p>
+  </div>
+</div></section>
+
+<section style="padding-top:0"><div class="wrap grid-2">
+  <div class="card prose">
+    <h2>What a planner would do with this</h2>
+    <ul class="plain">
+      <li>Build the production plan around category-specific seasonality, and use ReadyMeal's opposite cycle to level line capacity.</li>
+      <li>Forecast each category with the method that won its backtest, and re-run the backtest each quarter.</li>
+      <li>Double safety stock for SKUs entering a promotion.</li>
+      <li>Plan launch volumes for a month 3–6 spike, not for the month 1–2 level.</li>
+    </ul>
+  </div>
+  <div class="card prose">
+    <h2>Left out on purpose</h2>
+    <ul class="plain">
+      <li><strong>Delivered quantity:</strong> deliveries are about 9× sales while stock does not build up, so the stock flow is not consistent.</li>
+      <li><strong>ABC by SKU:</strong> revenue is spread almost evenly (22 of 30 SKUs make up 78% of 2024 revenue), so it adds no insight.</li>
+      <li><strong>Price elasticity:</strong> price and units sold have zero correlation in this data.</li>
+    </ul>
+  </div>
+</div></section>
+
+<section style="padding-top:0"><div class="wrap">
+  <div class="card download">
+    <div>
+      <h2 style="margin-bottom:.2em">The workbook</h2>
+      <p>Every number on this page is a live Excel formula over the raw data: CLEANING_LOG, MONTHLY, SEASONALITY, FORECAST, PROMO, LOST_SALES, STOCKOUT, LAUNCH, YEARLY, DASHBOARD, and INSIGHT sheets. About 15 MB.</p>
+    </div>
+    <a class="btn primary" href="../files/FMCG-Demand-Supply-Planning.xlsx" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>Download Excel</a>
+  </div>
+</div></section>
+</main>
+
+<footer class="footer"><div class="wrap">
+  <a href="../">← Back to portfolio</a>
+  <a href="warehouse-inventory.html">Next: Warehouse Inventory Health →</a>
+</div></footer>
+
+<script>
+(function () {
+  const C = Charts, F = FMCG;
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const ymLabel = (ym) => MON[+ym.slice(5) - 1] + ' ' + ym.slice(0, 4);
+
+  C.line(document.getElementById('c-monthly'), {
+    labels: F.monthly.map(m => m.ym), xName: 'Month', tipLabel: ymLabel,
+    xFmt: (ym) => ym.slice(5) === '01' ? ym.slice(0, 4) : MON[+ym.slice(5) - 1],
+    tickEvery: 6,
+    series: [{ name: 'Units sold', color: 'var(--s1)', values: F.monthly.map(m => m.total) }],
+    tickFmt: (v) => v >= 1000 ? (v / 1000) + 'k' : v, aria: 'Monthly units sold, 2022 to 2024'
+  });
+
+  C.line(document.getElementById('c-season'), {
+    labels: MON, xName: 'Month', tickEvery: 1, yMin: 50, yMax: 150, ref: 100,
+    series: [
+      { name: 'Total', color: 'var(--s1)', values: F.season.Total },
+      { name: 'Juice', color: 'var(--s2)', values: F.season.Juice },
+      { name: 'ReadyMeal', color: 'var(--s3)', values: F.season.ReadyMeal }
+    ], fmt: C.nf(1), tickFmt: C.nf(0), aria: 'Seasonality index by month'
+  });
+
+  C.bar(document.getElementById('c-mape'), {
+    categories: F.mape.map(r => r.series), catName: 'Category',
+    shortCats: F.mape.map(r => r.series === 'ReadyMeal' ? 'Ready' : r.series === 'SnackBar' ? 'Snack' : r.series),
+    series: [
+      { name: 'Naive (last month)', color: 'var(--s1)', values: F.mape.map(r => r.naive) },
+      { name: '3-month moving average', color: 'var(--s2)', values: F.mape.map(r => r.ma3) },
+      { name: 'Seasonal naive (same month last year)', color: 'var(--s3)', values: F.mape.map(r => r.snaive) }
+    ], fmt: (v) => v.toFixed(1) + '%', tickFmt: (v) => v + '%', aria: 'MAPE by method and category'
+  });
+
+  C.bar(document.getElementById('c-promo'), {
+    categories: F.promo.map(r => r.cat), catName: 'Category',
+    shortCats: F.promo.map(r => r.cat === 'ReadyMeal' ? 'Ready' : r.cat === 'SnackBar' ? 'Snack' : r.cat),
+    series: [
+      { name: 'No promotion', color: 'var(--s1)', values: F.promo.map(r => r.base) },
+      { name: 'Promotion', color: 'var(--s2)', values: F.promo.map(r => r.promo) }
+    ], fmt: C.nf(1), tickFmt: C.nf(0), labels: true,
+    extra: (ci) => `<div class="row">Uplift<span class="num">+${F.promo[ci].uplift.toFixed(1)}%</span></div><div class="row">Std dev ratio<span class="num">${F.promo[ci].sdratio.toFixed(2)}×</span></div>`,
+    aria: 'Average units per row with and without promotion'
+  });
+
+  const top = F.lost_sku.slice(0, 10);
+  C.bar(document.getElementById('c-lost'), {
+    categories: top.map(r => r.sku), catName: 'SKU',
+    series: [{ name: 'Estimated lost units', color: 'var(--s1)', values: top.map(r => r.lost) }],
+    labels: true, labelFmt: (v) => (v / 1000).toFixed(1) + 'k',
+    extra: (ci) => `<div class="row">Stockout rate<span class="num">${top[ci].rate.toFixed(2)}%</span></div><div class="row">Lost revenue<span class="num">${top[ci].rev.toLocaleString('en-US')}</span></div>`,
+    tickFmt: (v) => v >= 1000 ? (v / 1000) + 'k' : v, aria: 'Top 10 SKUs by estimated lost units'
+  });
+
+  C.line(document.getElementById('c-launch'), {
+    labels: F.launch.map((_, i) => i + 1), xName: 'Month since launch', tipLabel: (m) => 'Month ' + m, tickEvery: 3,
+    xFmt: (m) => 'M' + m, yMin: 60, yMax: 150, ref: 100,
+    series: [{ name: 'Index', color: 'var(--s1)', values: F.launch }], fmt: C.nf(1), tickFmt: C.nf(0),
+    aria: 'Average launch curve of new SKUs'
+  });
+})();
+</script>
+</body>
+</html>

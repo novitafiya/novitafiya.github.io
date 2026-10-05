@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warehouse Inventory Health · Novita F. Pulungan</title>
+<meta name="description" content="Reorder points with safety stock, overstock and holding cost, service-level trade-offs, and an ABC-XYZ matrix for 3,204 warehouse items, built in Excel.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23256abf'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='15' fill='white' text-anchor='middle'%3ENF%3C/text%3E%3C/svg%3E">
+<script src="../assets/charts.js"></script>
+<script src="../assets/data.js"></script>
+</head>
+<body>
+<nav class="nav"><div class="wrap">
+  <a class="brand" href="../">Novita F. Pulungan</a>
+  <div class="nav-links">
+    <a href="../#projects">Projects</a><a href="fmcg-demand-planning.html">FMCG project</a><a href="../#contact">Contact</a>
+  </div>
+  <button class="theme-btn" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+</div></nav>
+
+<header class="hero" style="padding-bottom:8px"><div class="wrap">
+  <a class="crumb" href="../#projects">← All projects</a>
+  <div class="eyebrow">Project 2 · Inventory control</div>
+  <h1>Warehouse Inventory Health, Replenishment &amp; Cost</h1>
+  <p class="lead">A snapshot of 3,204 warehouse items, used to decide which items to reorder now, which are overstocked, what the excess costs to hold, and how much a higher service level would cost.</p>
+  <div class="notice"><strong>Data:</strong> <a href="https://www.kaggle.com/datasets/ziya07/logistics-warehouse-dataset" target="_blank" rel="noopener">Logistics Warehouse Dataset</a> (Kaggle, ziya07), a public <strong>synthetic</strong> dataset for 2024. The currency is not stated in the data card, so costs are in dataset units. The results demonstrate the method; they are not findings about a real warehouse.</div>
+  <div class="kpis">
+    <div class="kpi"><div class="v">944</div><div class="l">items at or below the recalculated reorder point (29.5%)</div></div>
+    <div class="kpi"><div class="v">727</div><div class="l">of them marked as safe by the dataset's own reorder flag</div></div>
+    <div class="kpi"><div class="v">37.7%</div><div class="l">of items overstocked, holding 49.3% of holding cost</div></div>
+    <div class="kpi"><div class="v">22.7%</div><div class="l">of daily holding cost tied to stock above the maximum level</div></div>
+  </div>
+</div></header>
+
+<main>
+<section><div class="wrap grid-2">
+  <div class="prose">
+    <h2>Method</h2>
+    <ol class="steps">
+      <li><strong>Lead-time demand</strong> = daily demand × lead time (days).</li>
+      <li><strong>Safety stock</strong> = z × std dev of daily demand × √lead time, with z = 1.645 for a 95% service level.</li>
+      <li><strong>Reorder point (ROP)</strong> = lead-time demand + safety stock. <strong>Maximum level</strong> = ROP + daily demand × the item's reorder interval.</li>
+      <li><strong>Status:</strong> REORDER if stock ≤ ROP, OVERSTOCK if stock &gt; maximum level, otherwise OK.</li>
+      <li><strong>ABC</strong> by annual demand value (80% / 95% cut-offs); <strong>XYZ</strong> by coefficient of variation (≤ 0.25 / ≤ 0.5 / above).</li>
+    </ol>
+  </div>
+  <div class="prose">
+    <h2>Why recalculate the reorder point?</h2>
+    <p>The dataset ships with its own reorder point and reorder flag. In 76% of items, that reorder point is lower than the demand expected during the lead time, before any safety stock. It also has no relationship with the recalculated ROP (correlation −0.02).</p>
+    <p>A reorder point below lead-time demand guarantees a stockout before the next delivery arrives, so the dataset's flag cannot be trusted as-is.</p>
+    <p>The service level is an input cell in the workbook's PARAMETER sheet. Change it and every ROP, status, and cost figure updates.</p>
+  </div>
+</div></section>
+
+<section style="padding-top:0"><div class="wrap">
+  <div class="card chart-card">
+    <h3>1 · The dataset's reorder flag misses most items that need ordering</h3>
+    <div class="sub">Number of items by status: recalculated vs the dataset's own flag (which only has reorder yes/no)</div>
+    <div class="chart" id="c-status"></div>
+    <p class="takeaway">Recalculated, 944 items need reordering. The dataset flags only 240, so 727 items that should be ordered are treated as safe. It also has no overstock category, while 1,207 items sit above their maximum level.</p>
+  </div>
+
+  <div class="card chart-card">
+    <h3>2 · Overstock carries half the holding cost</h3>
+    <div class="sub">Share of items vs share of daily holding cost, by recalculated status</div>
+    <div class="chart" id="c-cost"></div>
+    <p class="takeaway">Holding cost totals about 881,500 per day (about 26.4 million per 30 days). Overstocked items are 37.7% of items but 49.3% of that cost. Bringing them down to their maximum level would cut about 199,900 per day (22.7% of holding cost, about 6.0 million per 30 days) and release about 21.1 million of stock value (23.5% of inventory value).</p>
+  </div>
+
+  <div class="card chart-card">
+    <h3>3 · Each step up in service level costs more than the last</h3>
+    <div class="sub">Daily holding cost of safety stock across all items, by target service level</div>
+    <div class="chart" id="c-sl"></div>
+    <p class="takeaway">Going from 90% to 95% raises the daily cost of safety stock by 28.3%. Going from 95% to 99% adds another 41.4%. The z-value grows faster than the service level, so the last few percent of availability are the most expensive. A sensible policy sets a high level only where the item's value or criticality justifies it.</p>
+  </div>
+
+  <div class="card chart-card">
+    <h3>4 · ABC-XYZ matrix: one policy does not fit all items</h3>
+    <div class="sub">Number of items by value class (ABC) and demand stability (XYZ). Darker = more items.</div>
+    <div class="tbl-wrap"><table class="heat" id="c-abc" aria-label="ABC-XYZ matrix"></table></div>
+    <p class="takeaway"><strong>AX (1,213 items):</strong> high value, stable demand, so routine replenishment with small safety stock. <strong>AZ (24):</strong> high value and unstable, so these need the closest monitoring. <strong>CZ (421):</strong> low value and unstable, so candidates for minimum stock or order-on-demand.</p>
+  </div>
+</div></section>
+
+<section style="padding-top:0"><div class="wrap grid-2">
+  <div class="card prose">
+    <h2>Slotting check</h2>
+    <p>Item popularity has no relationship with picking time (correlation 0.01). Of the 839 most popular items (top 25%), 422 sit in locations with above-median picking time. These are the first candidates to move closer to the dispatch area. Average picking time is almost the same across zones (93.8 to 96.7 seconds), so the issue is item placement, not one slow zone.</p>
+  </div>
+  <div class="card prose">
+    <h2>Left out on purpose</h2>
+    <ul class="plain">
+      <li><strong>"KPI drivers":</strong> the data card says KPI_score is calculated from fulfillment, stockouts, layout, turnover, and holding cost, so correlating them would only repeat the formula.</li>
+      <li><strong>Stockout count:</strong> it has no relationship with stock, lead time, or cover days in this synthetic data.</li>
+      <li><strong>EOQ:</strong> the dataset has no ordering cost, so it cannot be calculated honestly.</li>
+    </ul>
+  </div>
+</div></section>
+
+<section style="padding-top:0"><div class="wrap">
+  <div class="card download">
+    <div>
+      <h2 style="margin-bottom:.2em">The workbook</h2>
+      <p>Raw DATA, a PARAMETER sheet with editable inputs, a PROCESS sheet with every per-item formula, plus ANALYSIS, DASHBOARD, and INSIGHT sheets. About 2 MB.</p>
+    </div>
+    <a class="btn primary" href="../files/Warehouse-Inventory-Health-Replenishment-Cost.xlsx" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></svg>Download Excel</a>
+  </div>
+</div></section>
+</main>
+
+<footer class="footer"><div class="wrap">
+  <a href="fmcg-demand-planning.html">← FMCG Demand &amp; Supply Planning</a>
+  <a href="../">Back to portfolio →</a>
+</div></footer>
+
+<script>
+(function () {
+  const C = Charts, W = WH;
+  const nice = { REORDER: 'Reorder', OK: 'OK', OVERSTOCK: 'Overstock' };
+
+  C.bar(document.getElementById('c-status'), {
+    categories: W.status.map(s => nice[s.s]), catName: 'Status',
+    series: [
+      { name: 'Recalculated (ROP + safety stock)', color: 'var(--s1)', values: W.status.map(s => s.calc) },
+      { name: "Dataset's own flag", color: 'var(--s2)', values: W.status.map(s => s.ds) }
+    ], labels: true, fmt: C.nf(0), aria: 'Items by status, recalculated vs dataset flag'
+  });
+
+  const totalItems = W.cost.reduce((a, c) => a + c.items, 0);
+  C.bar(document.getElementById('c-cost'), {
+    categories: W.cost.map(s => nice[s.s]), catName: 'Status',
+    series: [
+      { name: 'Share of items', color: 'var(--s1)', values: W.cost.map(c => c.items / totalItems * 100) },
+      { name: 'Share of holding cost', color: 'var(--s2)', values: W.cost.map(c => c.hold_share * 100) }
+    ], labels: true, fmt: (v) => v.toFixed(1) + '%', tickFmt: (v) => v + '%',
+    extra: (ci) => `<div class="row">Items<span class="num">${W.cost[ci].items.toLocaleString('en-US')}</span></div><div class="row">Holding cost / day<span class="num">${Math.round(W.cost[ci].hold).toLocaleString('en-US')}</span></div>`,
+    aria: 'Share of items and holding cost by status'
+  });
+
+  C.bar(document.getElementById('c-sl'), {
+    categories: W.sl.map(s => Math.round(s.sl * 100) + '% service level'), shortCats: W.sl.map(s => Math.round(s.sl * 100) + '%'), catName: 'Service level',
+    series: [{ name: 'Safety stock holding cost / day', color: 'var(--s1)', values: W.sl.map(s => s.cost) }],
+    labels: true, labelFmt: (v) => Math.round(v).toLocaleString('en-US'), fmt: (v) => Math.round(v).toLocaleString('en-US'),
+    tickFmt: (v) => (v / 1000) + 'k',
+    extra: (ci) => `<div class="row">z<span class="num">${W.sl[ci].z.toFixed(3)}</span></div>` +
+      (W.sl[ci].inc != null ? `<div class="row">vs previous level<span class="num">+${(W.sl[ci].inc * 100).toFixed(1)}%</span></div>` : ''),
+    aria: 'Safety stock holding cost by service level'
+  });
+
+  // ABC-XYZ heatmap (sequential blue, one hue light -> dark)
+  const t = document.getElementById('c-abc');
+  const max = Math.max(...W.abc.flatMap(r => [r.X, r.Y, r.Z]));
+  const step = (v) => Math.min(5, Math.floor(v / max * 5.999));
+  const desc = { A: 'A · top 80% of value', B: 'B · next 15%', C: 'C · last 5%' };
+  let html = '<thead><tr><th></th><th>X · stable</th><th>Y · variable</th><th>Z · erratic</th><th>Total</th></tr></thead><tbody>';
+  W.abc.forEach(r => {
+    html += `<tr><th style="text-align:left">${desc[r.c]}</th>`;
+    ['X', 'Y', 'Z'].forEach(k => {
+      const s = step(r[k]);
+      html += `<td title="${r.c}${k}: ${r[k].toLocaleString('en-US')} items" style="background:var(--seq-${s});color:var(--seq-ink-${s})">${r[k].toLocaleString('en-US')}<small>${r.c}${k}</small></td>`;
+    });
+    html += `<td style="background:var(--surface-2);color:var(--ink)">${r.tot.toLocaleString('en-US')}<small>${(r.valshare * 100).toFixed(0)}% of value</small></td></tr>`;
+  });
+  t.innerHTML = html + '</tbody>';
+})();
+</script>
+</body>
+</html>
